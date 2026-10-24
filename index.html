@@ -1,620 +1,99 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Перевірка граматики</title>
-  <style>
-    :root {
-      --bg: #0f1419;
-      --surface: #1a2332;
-      --surface2: #243044;
-      --text: #e7ecf3;
-      --muted: #8b9bb4;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --error: #ef4444;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --border: #2d3a4f;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.5;
-    }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 2rem 1.25rem 4rem;
-    }
-    header { text-align: center; margin-bottom: 2rem; }
-    header h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.5rem;
-    }
-    header p { color: var(--muted); font-size: 0.95rem; }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem;
-      margin-bottom: 1.25rem;
-    }
-    label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: var(--muted);
-    }
-    textarea {
-      width: 100%;
-      min-height: 180px;
-      padding: 0.875rem 1rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 1rem;
-      line-height: 1.6;
-      resize: vertical;
-      font-family: inherit;
-    }
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-    }
-    textarea#corrected {
-      min-height: 180px;
-      background: rgba(34, 197, 94, 0.06);
-      border-color: rgba(34, 197, 94, 0.35);
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: center;
-      margin-top: 1rem;
-    }
-    select, .check-label {
-      padding: 0.55rem 0.85rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-    select:focus { outline: none; border-color: var(--accent); }
-    .check-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      user-select: none;
-    }
-    .check-label input { accent-color: var(--accent); }
-    button {
-      padding: 0.65rem 1.35rem;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    button:hover:not(:disabled) { background: var(--accent-hover); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; }
-    button.secondary {
-      background: var(--surface2);
-      color: var(--text);
-    }
-    button.secondary:hover:not(:disabled) { background: #2f3d55; }
-    button.small {
-      padding: 0.3rem 0.65rem;
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-    .status {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      color: var(--muted);
-      min-height: 1.4em;
-    }
-    .status.error { color: var(--error); }
-    .status.success { color: var(--success); }
-    .results { display: none; }
-    .results.visible { display: block; }
-    .summary {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-      margin: 1.25rem 0 1rem;
-      font-size: 0.9rem;
-      align-items: center;
-    }
-    .badge {
-      background: var(--surface2);
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      font-weight: 600;
-    }
-    .badge.error {
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-    }
-    .badge.ok {
-      background: rgba(34, 197, 94, 0.15);
-      color: #86efac;
-    }
-    .badge.warn {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fcd34d;
-    }
-    .issue {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--error);
-      border-radius: 8px;
-      padding: 0.9rem 1rem;
-      margin-bottom: 0.75rem;
-    }
-    .issue.style { border-left-color: #8b5cf6; }
-    .issue-type {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--muted);
-      margin-bottom: 0.25rem;
-    }
-    .issue-message { font-weight: 600; margin-bottom: 0.35rem; }
-    .issue-context {
-      font-size: 0.9rem;
-      color: var(--muted);
-      word-break: break-word;
-    }
-    .issue-context mark {
-      background: rgba(239, 68, 68, 0.25);
-      color: #fecaca;
-      padding: 0 2px;
-      border-radius: 2px;
-    }
-    .suggestions {
-      margin-top: 0.5rem;
-      font-size: 0.875rem;
-    }
-    .suggestions span {
-      display: inline-block;
-      background: var(--surface2);
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      margin: 0.15rem 0.25rem 0.15rem 0;
-      cursor: pointer;
-    }
-    .suggestions span:hover {
-      background: var(--accent);
-      color: white;
-    }
-    .issue-actions {
-      margin-top: 0.5rem;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    footer {
-      text-align: center;
-      margin-top: 2.5rem;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-    footer a { color: var(--accent); text-decoration: none; }
-    .note {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-top: 0.75rem;
-      line-height: 1.45;
-    }
-    .ignored-info {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-left: auto;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Перевірка граматики</title>
+<style>
+:root{--bg:#fafaf7;--card:#fff;--text:#1d1d1b;--muted:#6b6b66;--line:#e2e1da;--accent:#2f6fed;--accent-t:#fff;--ok:#e8f5ec;--bad:#fdecea;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#1f1f1d;--text:#ecebe6;--muted:#9a9993;--line:#34332f;--accent:#6c9bff;--accent-t:#0d1a33;--ok:#1b2b21;--bad:#33201e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161615;--card:#1f1f1d;--text:#ecebe6;--muted:#9a9993;--line:#34332f;--accent:#6c9bff;--accent-t:#0d1a33;--ok:#1b2b21;--bad:#33201e;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:1.6rem;margin:0 0 4px}
+p.sub{color:var(--muted);margin:0 0 20px}
+textarea,.out{width:100%;min-height:180px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font:inherit;resize:vertical}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+button{font:inherit;padding:10px 18px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-t);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.55;cursor:default}
+label{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.93rem}
+.out{white-space:pre-wrap;min-height:0;background:var(--ok)}
+h2{font-size:1.05rem;margin:24px 0 8px}
+ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+li{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.95rem}
+li s{background:var(--bad);text-decoration:none;padding:0 4px;border-radius:4px}
+li b{background:var(--ok);padding:0 4px;border-radius:4px}
+li small{display:block;color:var(--muted);margin-top:3px}
+#msg{color:var(--muted)}
+.hidden{display:none}
+</style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Перевірка граматики</h1>
-      <p>Вставте текст зверху — знизу з’явиться вже виправлена версія. Без зайвих довгих тире.</p>
-    </header>
-
-    <div class="card">
-      <label for="text">Ваш текст</label>
-      <textarea id="text" placeholder="Вставте або напишіть текст для перевірки..."></textarea>
-
-      <div class="controls">
-        <select id="lang" title="Мова тексту">
-          <option value="uk">Українська</option>
-          <option value="ru">Російська</option>
-          <option value="en-US">English</option>
-        </select>
-
-        <label class="check-label" title="Додаткові стилістичні правила">
-          <input type="checkbox" id="picky"> Суворіше
-        </label>
-
-        <label class="check-label" title="Автоматично застосовувати лише орфографію та граматику">
-          <input type="checkbox" id="onlyGrammar" checked> Лише орф. + граматика
-        </label>
-
-        <button id="checkBtn">Перевірити</button>
-        <button id="clearBtn" class="secondary">Очистити</button>
-      </div>
-
-      <div class="status" id="status"></div>
-      <p class="note">
-        Покращена перевірка: не підміняє короткі тире на довгі (—),
-        відфільтровано типові хибні спрацьовування (наприклад «в шоці»),
-        можна ігнорувати окремі правила.
-      </p>
-    </div>
-
-    <div class="card results" id="results">
-      <label for="corrected">Виправлений текст</label>
-      <textarea id="corrected" readonly placeholder="Тут з’явиться текст після перевірки..."></textarea>
-      <div class="controls">
-        <button id="copyBtn" class="secondary">Копіювати</button>
-        <button id="useCorrectedBtn" class="secondary">Підставити вгору</button>
-      </div>
-      <div class="summary" id="summary"></div>
-      <div id="issues"></div>
-    </div>
-
-    <footer>
-      Працює на <a href="https://languagetool.org" target="_blank" rel="noopener">LanguageTool</a>
-      + локальні покращення для української.
-      <div class="controls" style="justify-content:center; margin-top:0.75rem;">
-        <button id="copyHtmlBtn" class="secondary">Скопіювати HTML-код сайту</button>
-      </div>
-    </footer>
+<main>
+  <h1>Перевірка граматики</h1>
+  <p class="sub">Виправляє орфографію, пунктуацію і граматику. Довге тире (—) лишається тільки там, де воно справді потрібне.</p>
+  <textarea id="inp" placeholder="Вставте текст сюди…" aria-label="Текст для перевірки"></textarea>
+  <div class="row">
+    <button class="primary" id="go">Перевірити</button>
+    <label><input type="checkbox" id="strict" checked> Суворо щодо довгих тире</label>
+    <span id="msg"></span>
   </div>
-
-  <script>
-    const textEl = document.getElementById("text");
-    const langEl = document.getElementById("lang");
-    const pickyEl = document.getElementById("picky");
-    const onlyGrammarEl = document.getElementById("onlyGrammar");
-    const checkBtn = document.getElementById("checkBtn");
-    const clearBtn = document.getElementById("clearBtn");
-    const statusEl = document.getElementById("status");
-    const resultsEl = document.getElementById("results");
-    const summaryEl = document.getElementById("summary");
-    const issuesEl = document.getElementById("issues");
-    const correctedEl = document.getElementById("corrected");
-    const copyBtn = document.getElementById("copyBtn");
-    const copyHtmlBtn = document.getElementById("copyHtmlBtn");
-    const useCorrectedBtn = document.getElementById("useCorrectedBtn");
-
-    const API = "https://api.languagetool.org/v2/check";
-
-    const UK_FALSE_POSITIVES = [
-      "шоці", "шоку", "шокові",
-      "в шоці", "у шоці", "в шоку", "у шоку"
-    ];
-
-    const STYLE_CATEGORIES = new Set([
-      "STYLE", "REDUNDANCY", "PLAIN_ENGLISH", "CONFUSED_WORDS",
-      "TYPOGRAPHY", "CASING", "MISC", "SEMANTICS"
-    ]);
-
-    const LONG_DASHES = /[—–―]/;
-    const SHORT_DASHES = /[-−‐‑]/;
-
-    function loadIgnoredRules() {
-      try {
-        return new Set(JSON.parse(localStorage.getItem("lt_ignored_rules") || "[]"));
-      } catch {
-        return new Set();
-      }
+  <section id="res" class="hidden">
+    <h2>Виправлений текст</h2>
+    <div class="out" id="fixed"></div>
+    <div class="row"><button id="copy">Копіювати</button></div>
+    <h2 id="chTitle">Що змінено</h2>
+    <ul id="changes"></ul>
+  </section>
+</main>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var sample=null;
+  if(window.claude&&claude.use){claude.use("sample").then(function(s){sample=s;if(!s)$("msg").textContent="Перевірка недоступна в цьому вікні."}).catch(function(){})}
+  var SYS="Ти коректор. Виправ орфографію, граматику, пунктуацію та вживання слів у тексті, зберігши мову, зміст і стиль автора. "
+   +"ПРАВИЛА ЩОДО ТИРЕ: довге тире (—) став ЛИШЕ там, де цього вимагає правопис (наприклад, між підметом і присудком, вираженими іменниками, на місці пропущеного члена речення, перед узагальнювальним словом, у прямій мові). "
+   +"Не використовуй довге тире для стилістики, як рекламну розділювальну риску або замість коми, двокрапки чи дужок. Якщо в тексті є зайве довге тире (—) чи середнє (–), заміни його комою, крапкою, двокрапкою, дужками або дефісом залежно від контексту. "
+   +"Дефіс (-) у складних словах і діапазони (напр. 5-10) лиши як є за нормами мови. "
+   +"Відповідай ЛИШЕ JSON без markdown: {\"corrected\":\"повний виправлений текст\",\"changes\":[{\"from\":\"було\",\"to\":\"стало\",\"reason\":\"коротке пояснення мовою тексту\"}]}. Якщо помилок немає, поверни той самий текст і порожній масив changes.";
+  $("go").onclick=async function(){
+    var t=$("inp").value.trim();
+    if(!t){$("msg").textContent="Спочатку введіть текст.";return}
+    if(!sample){$("msg").textContent="Перевірка недоступна в цьому вікні.";return}
+    var b=$("go");b.disabled=true;$("msg").textContent="Перевіряю…";
+    try{
+      var prompt=SYS+($("strict").checked?" Будь максимально суворим: якщо сумніваєшся, тире не став.":"")+"\n\nТЕКСТ:\n"+t;
+      var r=await sample.json(prompt);
+      if(typeof r==="string"){r=JSON.parse(r.replace(/```json|```/g,"").trim())}
+      show(r);$("msg").textContent="";
+    }catch(e){
+      $("msg").textContent=(e&&e.code==="not_granted")?"Дозвіл не надано.":(e&&e.code==="rate_limited")?"Забагато запитів, спробуйте трохи згодом.":"Не вдалося перевірити. Спробуйте ще раз."
     }
-
-    function saveIgnoredRules(set) {
-      localStorage.setItem("lt_ignored_rules", JSON.stringify([...set]));
-    }
-
-    let ignoredRules = loadIgnoredRules();
-
-    function setStatus(msg, type) {
-      statusEl.textContent = msg;
-      statusEl.className = "status" + (type ? " " + type : "");
-    }
-
-    function escapeHtml(s) {
-      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    function highlightContext(text, offset, length) {
-      const before = text.slice(Math.max(0, offset - 40), offset);
-      const match = text.slice(offset, offset + length);
-      const after = text.slice(offset + length, offset + length + 40);
-      return (offset > 40 ? "…" : "") + escapeHtml(before) +
-        "<mark>" + escapeHtml(match) + "</mark>" +
-        escapeHtml(after) + (offset + length + 40 < text.length ? "…" : "");
-    }
-
-    function isStyleMatch(m) {
-      const catId = (m.rule && m.rule.category && m.rule.category.id) || "";
-      const issueType = (m.rule && m.rule.issueType) || "";
-      return STYLE_CATEGORIES.has(catId) || issueType === "style" ||
-        /style|typograph|redundan/i.test(catId);
-    }
-
-    function isDashRule(m, text) {
-      var fragment = text.slice(m.offset, m.offset + m.length);
-      var msg = (m.message || "").toLowerCase();
-      var catId = ((m.rule && m.rule.category && m.rule.category.id) || "").toUpperCase();
-      var ruleId = ((m.rule && m.rule.id) || "").toUpperCase();
-      if (/тире|деф[іi]с|dash|hyphen|em.?dash|en.?dash/.test(msg)) return true;
-      if (catId.indexOf("TYPOGRAPH") !== -1 || ruleId.indexOf("DASH") !== -1 || ruleId.indexOf("TYPOGRAPH") !== -1) return true;
-      if (m.replacements) {
-        for (var i = 0; i < m.replacements.length; i++) {
-          var v = (m.replacements[i].value || "").trim();
-          if (v === "—" || v === "–" || v === "―" || LONG_DASHES.test(v)) return true;
-        }
-      }
-      if (SHORT_DASHES.test(fragment) || LONG_DASHES.test(fragment)) return true;
-      return false;
-    }
-
-    function isFalsePositive(m, text) {
-      var fragment = text.slice(m.offset, m.offset + m.length).toLowerCase();
-      if (UK_FALSE_POSITIVES.some(function(fp) {
-        return fragment.indexOf(fp) !== -1 || fp.indexOf(fragment) !== -1;
-      })) return true;
-      var msg = (m.message || "").toLowerCase();
-      if (/шоц[іі]|шоку/.test(fragment) && /норм|форм/.test(msg)) return true;
-      if (isDashRule(m, text)) return true;
-      return false;
-    }
-
-    function shouldAutoApply(m, text) {
-      if (onlyGrammarEl.checked && isStyleMatch(m)) return false;
-      if (!m.replacements || m.replacements.length === 0) return false;
-      var replacement = m.replacements[0].value || "";
-      if (LONG_DASHES.test(replacement) || replacement.trim() === "—" || replacement.trim() === "–") return false;
-      if (isDashRule(m, text)) return false;
-      return true;
-    }
-
-    function applySuggestions(text, matches) {
-      var sorted = matches.filter(function(m) {
-        return shouldAutoApply(m, text);
-      }).slice().sort(function(a, b) {
-        return b.offset - a.offset;
-      });
-      var result = text;
-      for (var i = 0; i < sorted.length; i++) {
-        var m = sorted[i];
-        var replacement = m.replacements[0].value;
-        if (LONG_DASHES.test(replacement)) continue;
-        result = result.slice(0, m.offset) + replacement + result.slice(m.offset + m.length);
-      }
-      if (LONG_DASHES.test(result)) {
-        var origHadLong = LONG_DASHES.test(text);
-        if (!origHadLong) {
-          result = result.replace(/[—–―]/g, "-");
-        }
-      }
-      return result;
-    }
-
-    function plural(n, one, few, many) {
-      var mod10 = n % 10;
-      var mod100 = n % 100;
-      if (mod10 === 1 && mod100 !== 11) return one;
-      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-      return many;
-    }
-
-    function filterMatches(matches, text) {
-      return matches.filter(function(m) {
-        var ruleId = m.rule && m.rule.id;
-        if (ruleId && ignoredRules.has(ruleId)) return false;
-        if (isFalsePositive(m, text)) return false;
-        return true;
-      });
-    }
-
-    async function checkText() {
-      var text = textEl.value;
-      if (!text.trim()) {
-        setStatus("Введіть текст для перевірки.", "error");
-        resultsEl.classList.remove("visible");
-        return;
-      }
-      if (text.length > 20000) {
-        setStatus("Текст занадто довгий (ліміт ~20 000 символів).", "error");
-        return;
-      }
-
-      checkBtn.disabled = true;
-      setStatus("Перевіряю…");
-      resultsEl.classList.remove("visible");
-      issuesEl.innerHTML = "";
-      correctedEl.value = "";
-
-      try {
-        var body = new URLSearchParams();
-        body.set("text", text);
-        body.set("language", langEl.value);
-        body.set("enabledOnly", "false");
-        if (pickyEl.checked) body.set("level", "picky");
-
-        var res = await fetch(API, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Accept: "application/json"
-          },
-          body: body.toString()
-        });
-
-        if (!res.ok) throw new Error("Помилка API: " + res.status);
-
-        var data = await res.json();
-        var matches = filterMatches(data.matches || [], text);
-
-        correctedEl.value = applySuggestions(text, matches);
-        resultsEl.classList.add("visible");
-
-        var grammarCount = matches.filter(function(m) { return !isStyleMatch(m); }).length;
-        var styleCount = matches.filter(function(m) { return isStyleMatch(m); }).length;
-
-        if (matches.length === 0) {
-          summaryEl.innerHTML = '<span class="badge ok">Помилок не знайдено</span>';
-          setStatus("Готово. Серйозних зауважень немає.", "success");
-        } else {
-          var badges = "";
-          if (grammarCount) {
-            badges += '<span class="badge error">' + grammarCount + " " +
-              plural(grammarCount, "помилка", "помилки", "помилок") + "</span>";
-          }
-          if (styleCount) {
-            badges += '<span class="badge warn">' + styleCount + " " +
-              plural(styleCount, "стилістична порада", "стилістичні поради", "стилістичних порад") + "</span>";
-          }
-          if (ignoredRules.size) {
-            badges += '<span class="ignored-info">Ігнорується правил: ' + ignoredRules.size + "</span>";
-          }
-          summaryEl.innerHTML = badges;
-
-          matches.forEach(function(m) {
-            var style = isStyleMatch(m);
-            var div = document.createElement("div");
-            div.className = "issue" + (style ? " style" : "");
-
-            var typeLabel = (m.rule && m.rule.category && m.rule.category.name) ||
-              (m.rule && m.rule.issueType) || "Помилка";
-
-            var suggestionsHtml = "";
-            if (m.replacements && m.replacements.length) {
-              var items = m.replacements.slice(0, 5).map(function(r) {
-                return "<span data-offset='" + m.offset +
-                  "' data-length='" + m.length +
-                  "' data-value='" + escapeHtml(r.value) + "'>" +
-                  escapeHtml(r.value) + "</span>";
-              }).join("");
-              suggestionsHtml = '<div class="suggestions">Пропозиції: ' + items + "</div>";
-            }
-
-            var ruleId = (m.rule && m.rule.id) || "";
-
-            div.innerHTML =
-              '<div class="issue-type">' + escapeHtml(typeLabel) +
-              (style ? " · стиль" : "") + "</div>" +
-              '<div class="issue-message">' + escapeHtml(m.message) + "</div>" +
-              '<div class="issue-context">' + highlightContext(text, m.offset, m.length) + "</div>" +
-              suggestionsHtml +
-              '<div class="issue-actions">' +
-              (ruleId
-                ? '<button class="secondary small ignore-btn" data-rule="' +
-                  escapeHtml(ruleId) + '">Ігнорувати це правило</button>'
-                : "") +
-              "</div>";
-
-            issuesEl.appendChild(div);
-          });
-
-          setStatus(
-            "Готово. Знизу — текст із застосованими виправленнями" +
-            (onlyGrammarEl.checked ? " (стиль не застосовано автоматично)" : "") + ".",
-            "success"
-          );
-
-          issuesEl.querySelectorAll(".suggestions span").forEach(function(el) {
-            el.addEventListener("click", function() {
-              var offset = Number(el.dataset.offset);
-              var length = Number(el.dataset.length);
-              var value = el.dataset.value;
-              textEl.value = textEl.value.slice(0, offset) + value + textEl.value.slice(offset + length);
-              setStatus("Заміну застосовано. Натисніть «Перевірити» знову для оновлення.");
-            });
-          });
-
-          issuesEl.querySelectorAll(".ignore-btn").forEach(function(btn) {
-            btn.addEventListener("click", function() {
-              var ruleId = btn.dataset.rule;
-              ignoredRules.add(ruleId);
-              saveIgnoredRules(ignoredRules);
-              btn.closest(".issue").remove();
-              setStatus("Правило додано до ігнорованих. Воно більше не з’являтиметься.");
-            });
-          });
-        }
-      } catch (err) {
-        console.error(err);
-        setStatus(
-          "Не вдалося перевірити. Перевірте інтернет або спробуйте пізніше. (" +
-          (err.message || "помилка") + ")",
-          "error"
-        );
-        resultsEl.classList.remove("visible");
-      } finally {
-        checkBtn.disabled = false;
-      }
-    }
-
-    checkBtn.addEventListener("click", checkText);
-    clearBtn.addEventListener("click", function() {
-      textEl.value = "";
-      correctedEl.value = "";
-      resultsEl.classList.remove("visible");
-      setStatus("");
-      textEl.focus();
+    b.disabled=false;
+  };
+  function show(r){
+    $("res").classList.remove("hidden");
+    $("fixed").textContent=r.corrected||"";
+    var ul=$("changes");ul.textContent="";
+    var ch=Array.isArray(r.changes)?r.changes:[];
+    $("chTitle").textContent=ch.length?"Що змінено ("+ch.length+")":"Змін немає: помилок не знайдено";
+    ch.forEach(function(c){
+      var li=document.createElement("li"),a=document.createElement("s"),b=document.createElement("b");
+      a.textContent=c.from||"";b.textContent=c.to||"";
+      li.appendChild(a);li.appendChild(document.createTextNode(" → "));li.appendChild(b);
+      if(c.reason){var s=document.createElement("small");s.textContent=c.reason;li.appendChild(s)}
+      ul.appendChild(li);
     });
-    copyBtn.addEventListener("click", async function() {
-      try {
-        await navigator.clipboard.writeText(correctedEl.value);
-        setStatus("Скопійовано.", "success");
-      } catch (e) {
-        correctedEl.select();
-        document.execCommand("copy");
-        setStatus("Скопійовано.", "success");
-      }
-    });
-
-    copyHtmlBtn.addEventListener("click", async function() {
-      var html = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-      try {
-        await navigator.clipboard.writeText(html);
-        setStatus("HTML-код сайту скопійовано. Встав у новий файл .html.", "success");
-      } catch (e) {
-        var ta = document.createElement("textarea");
-        ta.value = html;
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        setStatus("HTML-код сайту скопійовано. Встав у новий файл .html.", "success");
-      }
-    });
-    useCorrectedBtn.addEventListener("click", function() {
-      textEl.value = correctedEl.value;
-      setStatus("Виправлений текст підставлено вгору.");
-    });
-    textEl.addEventListener("keydown", function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") checkText();
-    });
-  </script>
+  }
+  $("copy").onclick=function(){
+    var v=$("fixed").textContent;
+    try{navigator.clipboard.writeText(v).then(function(){$("copy").textContent="Скопійовано";setTimeout(function(){$("copy").textContent="Копіювати"},1500)})}
+    catch(e){var r=document.createRange();r.selectNodeContents($("fixed"));var s=getSelection();s.removeAllRanges();s.addRange(r)}
+  };
+})();
+</script>
 </body>
 </html>
