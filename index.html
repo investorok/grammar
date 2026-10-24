@@ -2,25 +2,25 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Перевірка граматики</title>
 <style>
-:root{--bg:#fafaf7;--card:#fff;--text:#1d1d1b;--muted:#6b6b66;--line:#e2e1da;--accent:#2f6fed;--accent-t:#fff;--ok:#e8f5ec;--bad:#fdecea;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--card:#1f1f1d;--text:#ecebe6;--muted:#9a9993;--line:#34332f;--accent:#6c9bff;--accent-t:#0d1a33;--ok:#1b2b21;--bad:#33201e;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#161615;--card:#1f1f1d;--text:#ecebe6;--muted:#9a9993;--line:#34332f;--accent:#6c9bff;--accent-t:#0d1a33;--ok:#1b2b21;--bad:#33201e;color-scheme:dark}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+:root{--bg:#fafaf7;--card:#fff;--text:#1d1d1b;--muted:#6b6b66;--line:#e2e1da;--accent:#2f6fed;--accent-t:#fff;--ok:#e8f5ec;--bad:#fdecea;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#161615;--card:#1f1f1d;--text:#ecebe6;--muted:#9a9993;--line:#34332f;--accent:#6c9bff;--accent-t:#0d1a33;--ok:#1b2b21;--bad:#33201e;color-scheme:dark}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
 h1{font-size:1.6rem;margin:0 0 4px}
 p.sub{color:var(--muted);margin:0 0 20px}
-textarea,.out{width:100%;min-height:180px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font:inherit;resize:vertical}
+textarea,.out,select{width:100%;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font:inherit}
+textarea{min-height:180px;resize:vertical}
+select{width:auto;padding:8px 10px;border-radius:10px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
 button{font:inherit;padding:10px 18px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
 button.primary{background:var(--accent);color:var(--accent-t);border-color:var(--accent);font-weight:600}
 button:disabled{opacity:.55;cursor:default}
 label{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.93rem}
-.out{white-space:pre-wrap;min-height:0;background:var(--ok)}
+.out{white-space:pre-wrap;background:var(--ok)}
 h2{font-size:1.05rem;margin:24px 0 8px}
 ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
 li{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.95rem}
@@ -34,11 +34,29 @@ li small{display:block;color:var(--muted);margin-top:3px}
 <body>
 <main>
   <h1>Перевірка граматики</h1>
-  <p class="sub">Виправляє орфографію, пунктуацію і граматику. Довге тире (—) лишається тільки там, де воно справді потрібне.</p>
+  <p class="sub">Виправляє орфографію і граматику та прибирає зайві довгі тире (—).</p>
   <textarea id="inp" placeholder="Вставте текст сюди…" aria-label="Текст для перевірки"></textarea>
   <div class="row">
+    <label>Мова:
+      <select id="lang">
+        <option value="uk-UA">Українська</option>
+        <option value="auto">Автовизначення</option>
+        <option value="en-US">English</option>
+        <option value="ru-RU">Русский</option>
+        <option value="pl-PL">Polski</option>
+        <option value="de-DE">Deutsch</option>
+      </select>
+    </label>
+    <label>Довге тире:
+      <select id="dash">
+        <option value="hyphen">Замінити на дефіс</option>
+        <option value="comma">Замінити на кому</option>
+        <option value="keep">Не чіпати</option>
+      </select>
+    </label>
+  </div>
+  <div class="row">
     <button class="primary" id="go">Перевірити</button>
-    <label><input type="checkbox" id="strict" checked> Суворо щодо довгих тире</label>
     <span id="msg"></span>
   </div>
   <section id="res" class="hidden">
@@ -51,47 +69,109 @@ li small{display:block;color:var(--muted);margin-top:3px}
 </main>
 <script>
 (function(){
-  var $=function(id){return document.getElementById(id)};
-  var sample=null;
-  if(window.claude&&claude.use){claude.use("sample").then(function(s){sample=s;if(!s)$("msg").textContent="Перевірка недоступна в цьому вікні."}).catch(function(){})}
-  var SYS="Ти коректор. Виправ орфографію, граматику, пунктуацію та вживання слів у тексті, зберігши мову, зміст і стиль автора. "
-   +"ПРАВИЛА ЩОДО ТИРЕ: довге тире (—) став ЛИШЕ там, де цього вимагає правопис (наприклад, між підметом і присудком, вираженими іменниками, на місці пропущеного члена речення, перед узагальнювальним словом, у прямій мові). "
-   +"Не використовуй довге тире для стилістики, як рекламну розділювальну риску або замість коми, двокрапки чи дужок. Якщо в тексті є зайве довге тире (—) чи середнє (–), заміни його комою, крапкою, двокрапкою, дужками або дефісом залежно від контексту. "
-   +"Дефіс (-) у складних словах і діапазони (напр. 5-10) лиши як є за нормами мови. "
-   +"Відповідай ЛИШЕ JSON без markdown: {\"corrected\":\"повний виправлений текст\",\"changes\":[{\"from\":\"було\",\"to\":\"стало\",\"reason\":\"коротке пояснення мовою тексту\"}]}. Якщо помилок немає, поверни той самий текст і порожній масив changes.";
-  $("go").onclick=async function(){
-    var t=$("inp").value.trim();
-    if(!t){$("msg").textContent="Спочатку введіть текст.";return}
-    if(!sample){$("msg").textContent="Перевірка недоступна в цьому вікні.";return}
-    var b=$("go");b.disabled=true;$("msg").textContent="Перевіряю…";
+  var $ = function(id){ return document.getElementById(id); };
+
+  // Крок 1: граматика через LanguageTool
+  async function checkGrammar(text, lang){
+    var body = new URLSearchParams({ text: text, language: lang });
+    var r = await fetch("https://api.languagetool.org/v2/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+      body: body
+    });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+
+  function applyMatches(text, matches){
+    var changes = [];
+    var list = matches
+      .filter(function(m){ return m.replacements && m.replacements.length; })
+      .sort(function(a,b){ return b.offset - a.offset; });
+    var out = text;
+    list.forEach(function(m){
+      var from = out.substr(m.offset, m.length);
+      var to = m.replacements[0].value;
+      out = out.slice(0, m.offset) + to + out.slice(m.offset + m.length);
+      changes.push({ from: from, to: to, reason: m.message });
+    });
+    return { text: out, changes: changes.reverse() };
+  }
+
+  // Крок 2: довгі тире
+  function fixDashes(text, mode){
+    if(mode === "keep") return { text: text, changes: [] };
+    var changes = [];
+    var lines = text.split("\n").map(function(line){
+      // діалог: рядок починається з тире, його залишаємо
+      var m = line.match(/^(\s*[—–-]\s?)(.*)$/);
+      var head = "", rest = line;
+      if(m && /^\s*[—–]/.test(line)){ head = m[1]; rest = m[2]; }
+      // діапазони 5–10, 5—10 -> 5-10
+      rest = rest.replace(/(\d)\s*[—–]\s*(\d)/g, function(all,a,b){
+        changes.push({ from: all, to: a + "-" + b, reason: "Діапазон чисел: дефіс" });
+        return a + "-" + b;
+      });
+      // тире між словами
+      rest = rest.replace(/\s*[—–]\s*/g, function(all){
+        var to = mode === "comma" ? ", " : " - ";
+        changes.push({ from: all.trim() || all, to: to.trim(), reason: "Зайве довге тире" });
+        return to;
+      });
+      return head + rest;
+    });
+    return { text: lines.join("\n"), changes: changes };
+  }
+
+  $("go").onclick = async function(){
+    var t = $("inp").value;
+    if(!t.trim()){ $("msg").textContent = "Спочатку введіть текст."; return; }
+    if(t.length > 20000){ $("msg").textContent = "Забагато тексту (максимум 20 000 символів)."; return; }
+    var btn = $("go");
+    btn.disabled = true;
+    $("msg").textContent = "Перевіряю…";
     try{
-      var prompt=SYS+($("strict").checked?" Будь максимально суворим: якщо сумніваєшся, тире не став.":"")+"\n\nТЕКСТ:\n"+t;
-      var r=await sample.json(prompt);
-      if(typeof r==="string"){r=JSON.parse(r.replace(/```json|```/g,"").trim())}
-      show(r);$("msg").textContent="";
+      var data = await checkGrammar(t, $("lang").value);
+      var g = applyMatches(t, data.matches || []);
+      var d = fixDashes(g.text, $("dash").value);
+      show(d.text, g.changes.concat(d.changes));
+      $("msg").textContent = "";
     }catch(e){
-      $("msg").textContent=(e&&e.code==="not_granted")?"Дозвіл не надано.":(e&&e.code==="rate_limited")?"Забагато запитів, спробуйте трохи згодом.":"Не вдалося перевірити. Спробуйте ще раз."
+      $("msg").textContent = "Не вдалося перевірити. Перевірте інтернет або спробуйте пізніше.";
     }
-    b.disabled=false;
+    btn.disabled = false;
   };
-  function show(r){
+
+  function show(text, changes){
     $("res").classList.remove("hidden");
-    $("fixed").textContent=r.corrected||"";
-    var ul=$("changes");ul.textContent="";
-    var ch=Array.isArray(r.changes)?r.changes:[];
-    $("chTitle").textContent=ch.length?"Що змінено ("+ch.length+")":"Змін немає: помилок не знайдено";
-    ch.forEach(function(c){
-      var li=document.createElement("li"),a=document.createElement("s"),b=document.createElement("b");
-      a.textContent=c.from||"";b.textContent=c.to||"";
-      li.appendChild(a);li.appendChild(document.createTextNode(" → "));li.appendChild(b);
-      if(c.reason){var s=document.createElement("small");s.textContent=c.reason;li.appendChild(s)}
+    $("fixed").textContent = text;
+    var ul = $("changes");
+    ul.textContent = "";
+    $("chTitle").textContent = changes.length ? "Що змінено (" + changes.length + ")" : "Змін немає";
+    changes.forEach(function(c){
+      var li = document.createElement("li");
+      var a = document.createElement("s");
+      var b = document.createElement("b");
+      a.textContent = c.from;
+      b.textContent = c.to;
+      li.appendChild(a);
+      li.appendChild(document.createTextNode(" → "));
+      li.appendChild(b);
+      if(c.reason){
+        var s = document.createElement("small");
+        s.textContent = c.reason;
+        li.appendChild(s);
+      }
       ul.appendChild(li);
     });
   }
-  $("copy").onclick=function(){
-    var v=$("fixed").textContent;
-    try{navigator.clipboard.writeText(v).then(function(){$("copy").textContent="Скопійовано";setTimeout(function(){$("copy").textContent="Копіювати"},1500)})}
-    catch(e){var r=document.createRange();r.selectNodeContents($("fixed"));var s=getSelection();s.removeAllRanges();s.addRange(r)}
+
+  $("copy").onclick = function(){
+    var v = $("fixed").textContent;
+    navigator.clipboard.writeText(v).then(function(){
+      $("copy").textContent = "Скопійовано";
+      setTimeout(function(){ $("copy").textContent = "Копіювати"; }, 1500);
+    });
   };
 })();
 </script>
